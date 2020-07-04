@@ -4,6 +4,8 @@ var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
 
 var camera;
 
+var groundY = -5;
+
 var groundMaxZ = 0;
 var groundMinZ = 0;
 var groundMaxX = 0;
@@ -95,7 +97,6 @@ var createScene = function () {
 
     });
 
-
     return scene;
 };
 /******* End of the create scene function ******/
@@ -113,7 +114,17 @@ engine.runRenderLoop(function () {
         camera.position.y += forwardVector.y * speed * scene.getAnimationRatio();
         camera.position.z += forwardVector.z * speed * scene.getAnimationRatio();
 
-        expandGround(camera.position, 250);
+        expandGround(camera.position, 500);
+
+        //Reset 
+        if(camera.position.y <= groundY){
+            camera.position.x = 10;
+            camera.position.y = 0;
+            camera.position.z = 0;
+            camera.rotation.x = 0;
+            camera.rotation.y = 0;
+            camera.rotation.z = 0;
+        }
 });
 
 // Watch for browser/canvas resize events
@@ -135,24 +146,9 @@ function createSkyBox(scene){
     skybox.infiniteDistance = true;
 }
 
-function createGround(){
-    var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 10000, height: 10000, subdivisions: 4}, scene);
-    ground.position.y = -5;
-
-    var groundMat = new BABYLON.StandardMaterial("GroundMaterial", scene);
-    //groundMat.diffuseColor = new BABYLON.Color3(0,1,0);
-    groundMat.diffuseTexture = new BABYLON.Texture("assets/textures/grass.jpg", scene);
-    groundMat.specularColor = new BABYLON.Color3(0.5, 0.6, 0.87);
-    groundMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
-    groundMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
-
-    ground.material = groundMat;
-}
-
-
 function initTiledGround(xTiles, zTiles, tileSize){
 
-    createTiledGround(xTiles, zTiles, tileSize, new BABYLON.Vector3(0,-5,0));
+    createTiledGround(xTiles, zTiles, tileSize, new BABYLON.Vector3(0,groundY,0));
 
     groundMaxZ = (zTiles * tileSize)/2;
     groundMinZ = -(zTiles * tileSize)/2;
@@ -169,9 +165,11 @@ function createTiledGround(xTiles, zTiles, tileSize, pos){
     groundMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
 
 
+
     var anchorX = (xTiles * tileSize)/2 + pos.x;
     var anchorZ = (zTiles * tileSize)/2 + pos.z;
 
+    //Surface plane
     for(x = 0; x < xTiles; x++){
         for(z = 0; z < zTiles; z++){
             var tile = BABYLON.MeshBuilder.CreateGround("ground", {width: tileSize, height: tileSize, subdivisions: 4}, scene);
@@ -183,6 +181,22 @@ function createTiledGround(xTiles, zTiles, tileSize, pos){
 
         }
     }
+
+    //Random buildings
+    for(i = 0; i < 500; i++){
+
+        var bWidth = 4 + Math.random() * 8;
+        var bHeight = 2 + Math.random() * 32;
+        var bDepth = 4 + Math.random() * 8;
+
+        var building = BABYLON.MeshBuilder.CreateBox("box", {width: bWidth, height: bHeight, depth: bDepth}, scene);
+
+        building.position.x = (-1 + Math.random() * 2) * (xTiles * tileSize)/2 - tileSize - pos.x;
+        building.position.z = (-1 + Math.random() * 2) * (zTiles * tileSize)/2 - tileSize - pos.z;
+        building.position.y = groundY + bHeight/2;
+    }
+
+
 }
 
 
@@ -234,7 +248,7 @@ function expandGround(cPos, threshold){
 
         groundGridX.forEach(cell => {
              createTiledGround(groundTilesX, groundTilesZ, groundTileSize, 
-                new BABYLON.Vector3(cell * segmentSize,-5, -(groundMaxZ + (segmentSize)/2)));
+                new BABYLON.Vector3(cell * segmentSize, groundY, -(groundMaxZ + (segmentSize)/2)));
         });
 
         groundMaxZ += segmentSize;
@@ -248,7 +262,7 @@ function expandGround(cPos, threshold){
 
         groundGridZ.forEach(cell => {        
             createTiledGround(groundTilesX, groundTilesZ, groundTileSize, 
-                new BABYLON.Vector3(-(groundMaxX + (segmentSize)/2), -5, cell * segmentSize));
+                new BABYLON.Vector3(-(groundMaxX + (segmentSize)/2), groundY, cell * segmentSize));
        });
 
         groundMaxX += segmentSize;
@@ -262,7 +276,7 @@ function expandGround(cPos, threshold){
 
         groundGridZ.forEach(cell => {         
             createTiledGround(groundTilesX, groundTilesZ, groundTileSize, 
-                new BABYLON.Vector3(-(groundMinX - (segmentSize)/2), -5, cell * segmentSize));
+                new BABYLON.Vector3(-(groundMinX - (segmentSize)/2), groundY, cell * segmentSize));
        });
 
         groundMinX -= segmentSize;
@@ -276,7 +290,7 @@ function expandGround(cPos, threshold){
 
         groundGridX.forEach(cell => {
              createTiledGround(groundTilesX, groundTilesZ, groundTileSize, 
-                new BABYLON.Vector3(cell * segmentSize,-5, -(groundMinZ - (segmentSize)/2)));
+                new BABYLON.Vector3(cell * segmentSize, groundY, -(groundMinZ - (segmentSize)/2)));
         });
 
         groundMinZ -= segmentSize;
