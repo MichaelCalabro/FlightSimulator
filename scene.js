@@ -11,13 +11,15 @@ var groundMinZ = 0;
 var groundMaxX = 0;
 var groundMinX = 0;
 
-var groundTilesX = 10;
-var groundTilesZ = 10;
-var groundTileSize = 100;
+var groundTilesX = 20;
+var groundTilesZ = 20;
+var groundTileSize = 50;
 
 var groundGridX = [0];
 var groundGridZ = [0];
 
+var airplane;
+var airplaneStartRotY = -Math.PI/2;
 
 /******* Add the create scene function ******/
 var createScene = function () {
@@ -25,11 +27,8 @@ var createScene = function () {
     // Create the scene space
     var scene = new BABYLON.Scene(engine);
 
-    //scene.clipPlane = new BABYLON.Plane(0,0, -1, 100);
-
     // Add a camera to the scene and attach it to the canvas
-    //var camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, new BABYLON.Vector3(0,0,5), scene);
-    
+
     camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0,0,-10), scene);
     camera.setTarget(BABYLON.Vector3.Zero());
     camera.maxZ = 10000;
@@ -43,7 +42,6 @@ var createScene = function () {
     createAirplane(camera);
     initTiledGround(groundTilesX, groundTilesZ, groundTileSize);
     createSkyBox(scene);
-
     
     var map = {}; //object for multiple key presses
     scene.actionManager = new BABYLON.ActionManager(scene);
@@ -57,7 +55,6 @@ var createScene = function () {
         map[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
     }));
 
-
     //User input
     scene.registerAfterRender(function () {
 
@@ -66,10 +63,11 @@ var createScene = function () {
             camera.position.y += camera.upVector.y * scene.getAnimationRatio();
             camera.position.z += camera.upVector.z * scene.getAnimationRatio();
 
-            camera.rotation.x -= 0.005 * camera.upVector.y * scene.getAnimationRatio();
-            camera.rotation.y -= 0.005 * camera.upVector.z * scene.getAnimationRatio();
-            camera.rotation.z -= 0.005 * camera.upVector.x * scene.getAnimationRatio();
+            camera.rotation.x -= 0.001 * camera.upVector.y * scene.getAnimationRatio();
+            camera.rotation.y -= 0.001 * camera.upVector.z * scene.getAnimationRatio();
+            camera.rotation.z -= 0.001 * camera.upVector.x * scene.getAnimationRatio();
 
+            airplane.rotation.z = Math.min(airplane.rotation.z + 0.001 * scene.getAnimationRatio(), 0.05);
         };
 
         if ((map["s"] || map["S"])) {
@@ -77,22 +75,31 @@ var createScene = function () {
             camera.position.y -= camera.upVector.y * scene.getAnimationRatio();
             camera.position.z -= camera.upVector.z * scene.getAnimationRatio();
 
-            camera.rotation.x += 0.005 * camera.upVector.y * scene.getAnimationRatio();
-            camera.rotation.y += 0.005 * camera.upVector.z * scene.getAnimationRatio();
-            camera.rotation.z -+ 0.005 * camera.upVector.x * scene.getAnimationRatio();
+            camera.rotation.x += 0.001 * camera.upVector.y * scene.getAnimationRatio();
+            camera.rotation.y += 0.001 * camera.upVector.z * scene.getAnimationRatio();
+            camera.rotation.z += 0.001 * camera.upVector.x * scene.getAnimationRatio();
 
+            airplane.rotation.z = Math.max(airplane.rotation.z - 0.001 * scene.getAnimationRatio(), -0.05);
         };
 
         if ((map["d"] || map["D"])) {
             camera.position.x += 0.2 * scene.getAnimationRatio();
             camera.rotation.z -= 0.01 * scene.getAnimationRatio();
-            camera.rotation.y += 0.01 * scene.getAnimationRatio();
+            camera.rotation.y += 0.001 * scene.getAnimationRatio();
+
+            airplane.rotation.y += 0.001 * scene.getAnimationRatio();
+            
+            airplane.rotation.y = Math.min(airplane.rotation.y + 0.001 * scene.getAnimationRatio(),
+                airplaneStartRotY + 0.05);
         };
 
         if ((map["a"] || map["A"])) {
             camera.position.x -= 0.2 * scene.getAnimationRatio(); 
             camera.rotation.z += 0.01 * scene.getAnimationRatio();
-            camera.rotation.y -= 0.01 * scene.getAnimationRatio();
+            camera.rotation.y -= 0.001 * scene.getAnimationRatio();
+
+            airplane.rotation.y = Math.max(airplane.rotation.y - 0.001 * scene.getAnimationRatio(),
+                airplaneStartRotY - 0.05);
         };
 
     });
@@ -116,7 +123,35 @@ engine.runRenderLoop(function () {
 
         expandGround(camera.position, 500);
 
-        //Reset 
+  
+
+        //Auto straighten camera
+        if(camera.rotation.z > 0.01){
+            camera.rotation.z -= 0.005 * scene.getAnimationRatio();
+        }
+        else if(camera.rotation.z < -0.01){
+            camera.rotation.z += 0.005 * scene.getAnimationRatio();
+        }
+
+        //Auto straighten plane
+        if(airplane){
+            
+            if(airplane.rotation.z > 0.01){
+                airplane.rotation.z -= 0.0005 * scene.getAnimationRatio();
+            }
+            else if(airplane.rotation.z < -0.01){
+                airplane.rotation.z += 0.0005 * scene.getAnimationRatio();
+            }
+
+            if(airplane.rotation.y > airplaneStartRotY + 0.01){
+                airplane.rotation.y-= 0.0005 * scene.getAnimationRatio();
+            }
+            else if(airplane.rotation.y < airplaneStartRotY - 0.01){
+                airplane.rotation.y += 0.0005 * scene.getAnimationRatio();
+            }
+        }   
+
+              //Reset 
         if(camera.position.y <= groundY){
             camera.position.x = 10;
             camera.position.y = 0;
@@ -159,10 +194,17 @@ function initTiledGround(xTiles, zTiles, tileSize){
 function createTiledGround(xTiles, zTiles, tileSize, pos){
 
     var groundMat = new BABYLON.StandardMaterial("GroundMaterial", scene);
-    groundMat.diffuseTexture = new BABYLON.Texture("assets/textures/grass.jpg", scene);
-    groundMat.specularColor = new BABYLON.Color3(0.5, 0.6, 0.87);
+    groundMat.diffuseTexture = new BABYLON.Texture("assets/textures/farmland.jpg", scene);
+    groundMat.specularColor = new BABYLON.Color3(0.5, 0.1, 0.2);
     groundMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
     groundMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
+    groundMat.diffuseColor = new BABYLON.Color3(0.5,0.5,0.5);
+
+    var buildingMat = new BABYLON.StandardMaterial("BuildingMaterial", scene);
+    buildingMat.diffuseTexture = new BABYLON.Texture("assets/textures/building.jpg", scene);
+    buildingMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.0);
+    buildingMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+    buildingMat.ambientColor = new BABYLON.Color3(0.0, 0.0, 0.0);
 
 
 
@@ -182,8 +224,10 @@ function createTiledGround(xTiles, zTiles, tileSize, pos){
         }
     }
 
+    var density = 10 + Math.random() * 100;
+
     //Random buildings
-    for(i = 0; i < 500; i++){
+    for(i = 0; i < density; i++){
 
         var bWidth = 4 + Math.random() * 8;
         var bHeight = 2 + Math.random() * 32;
@@ -194,6 +238,8 @@ function createTiledGround(xTiles, zTiles, tileSize, pos){
         building.position.x = (-1 + Math.random() * 2) * (xTiles * tileSize)/2 - tileSize - pos.x;
         building.position.z = (-1 + Math.random() * 2) * (zTiles * tileSize)/2 - tileSize - pos.z;
         building.position.y = groundY + bHeight/2;
+
+        building.material = buildingMat;
     }
 
 
@@ -208,17 +254,20 @@ function createAirplane(camera){
     //BABYLON.OBJFileLoader.UV_SCALE = new BABYLON.Vector2(1, 0.5);
     BABYLON.OBJFileLoader.SKIP_MATERIALS = true;
 
+
+
     // Add and manipulate meshes in the scene
     BABYLON.SceneLoader.ImportMesh("","assets/objects/", "Airplane.obj", scene, function(newMeshes){
-        var airplane = BABYLON.Mesh.MergeMeshes(newMeshes);
+        var apMesh = BABYLON.Mesh.MergeMeshes(newMeshes);
 
-        airplane.rotation.y = -Math.PI/2;
-        airplane.scaling.x = 0.2;
-        airplane.scaling.y = 0.2;
-        airplane.scaling.z = 0.2;
+        apMesh.name = "Airplane";
+        apMesh.rotation.y = airplaneStartRotY;
+        apMesh.scaling.x = 0.2;
+        apMesh.scaling.y = 0.2;
+        apMesh.scaling.z = 0.2;
         
-        airplane.position.z = 10;
-        airplane.parent = camera;
+        apMesh.position.z = 10;
+        apMesh.parent = camera;
 
 
         var airplaneMat = new BABYLON.StandardMaterial("AirplaneMaterial;", scene);
@@ -228,8 +277,12 @@ function createAirplane(camera){
         airplaneMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
         //airplaneMat.wireframe = true;
 
-        airplane.material = airplaneMat;
-    })
+        apMesh.material = airplaneMat;
+
+        airplane = scene.getMeshByName("Airplane");
+    });
+
+
 }
 
 function expandGround(cPos, threshold){
