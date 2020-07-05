@@ -21,6 +21,8 @@ var groundGridZ = [0];
 var airplane;
 var airplaneStartRotY = -Math.PI/2;
 
+var groundManager;
+
 
 /******* Add the create scene function ******/
 var createScene = function () {
@@ -41,8 +43,11 @@ var createScene = function () {
     var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
     var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 1, -1), scene);
 
+    groundManager = new GroundManager(4,4,64,scene);
+
+    groundManager.initTiledGround();
+
     createAirplane(camera);
-    initTiledGround(groundTilesX, groundTilesZ, groundTileSize);
     createSkyBox(scene);
     
     var map = {}; //object for multiple key presses
@@ -121,10 +126,9 @@ engine.runRenderLoop(function () {
         camera.position.y += forwardVector.y * speed * scene.getAnimationRatio();
         camera.position.z += forwardVector.z * speed * scene.getAnimationRatio();
 
-        expandGround(camera.position, 500);
+        groundManager.expandGround(camera.position, 1000);
 
   
-
         //Auto straighten camera
         if(camera.rotation.z > 0.01){
             camera.rotation.z -= 0.005 * scene.getAnimationRatio();
@@ -181,72 +185,6 @@ function createSkyBox(scene){
     skybox.infiniteDistance = true;
 }
 
-function initTiledGround(xTiles, zTiles, tileSize){
-
-    createTiledGround(xTiles, zTiles, tileSize, new BABYLON.Vector3(0,groundY,0));
-
-    groundMaxZ = (zTiles * tileSize)/2;
-    groundMinZ = -(zTiles * tileSize)/2;
-    groundMaxX = (xTiles * tileSize)/2;
-    groundMinX = -(xTiles * tileSize)/2;
-}
-
-function createTiledGround(xTiles, zTiles, tileSize, pos){
-
-    var groundMat = new BABYLON.StandardMaterial("GroundMaterial", scene);
-    groundMat.diffuseTexture = new BABYLON.Texture("assets/textures/farmland.jpg", scene);
-    groundMat.specularColor = new BABYLON.Color3(0.5, 0.1, 0.2);
-    groundMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
-    groundMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
-    groundMat.diffuseColor = new BABYLON.Color3(0.5,0.5,0.5);
-
-    var buildingMat = new BABYLON.StandardMaterial("BuildingMaterial", scene);
-    buildingMat.diffuseTexture = new BABYLON.Texture("assets/textures/building.jpg", scene);
-    buildingMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.0);
-    buildingMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
-    buildingMat.ambientColor = new BABYLON.Color3(0.0, 0.0, 0.0);
-
-
-
-    var anchorX = (xTiles * tileSize)/2 + pos.x;
-    var anchorZ = (zTiles * tileSize)/2 + pos.z;
-
-    //Surface plane
-    for(x = 0; x < xTiles; x++){
-        for(z = 0; z < zTiles; z++){
-            var tile = BABYLON.MeshBuilder.CreateGround("ground", {width: tileSize, height: tileSize, subdivisions: 4}, scene);
-            tile.position.x = (x * tileSize) - anchorX;
-            tile.position.z = (z * tileSize) - anchorZ;
-            tile.position.y = pos.y;
-
-            tile.material = groundMat;
-            tile.receiveShadows = true;
-        }
-    }
-
-    var density = 10 + Math.random() * 100;
-
-    //Random buildings
-    for(i = 0; i < density; i++){
-
-        var bWidth = 4 + Math.random() * 8;
-        var bHeight = 2 + Math.random() * 32;
-        var bDepth = 4 + Math.random() * 8;
-
-        var building = BABYLON.MeshBuilder.CreateBox("box", {width: bWidth, height: bHeight, depth: bDepth}, scene);
-
-        building.position.x = (-1 + Math.random() * 2) * (xTiles * tileSize)/2 - tileSize - pos.x;
-        building.position.z = (-1 + Math.random() * 2) * (zTiles * tileSize)/2 - tileSize - pos.z;
-        building.position.y = groundY + bHeight/2;
-
-        building.material = buildingMat;
-    }
-
-
-}
-
-
-
 function createAirplane(camera){
 
     BABYLON.OBJFileLoader.OPTIMIZE_WITH_UV = true;
@@ -282,72 +220,5 @@ function createAirplane(camera){
         airplane = scene.getMeshByName("Airplane");
     });
 
-
-}
-
-function expandGround(cPos, threshold){
-
-    var currentCellX = cPos.x >= 0 ? -Math.floor(cPos.x / (groundTilesX * groundTileSize))
-        : -Math.ceil(cPos.x / (groundTilesX * groundTileSize));
-
-    var currentCellZ = cPos.z >= 0 ? -Math.floor(cPos.z / (groundTilesZ * groundTileSize))
-        : -Math.ceil(cPos.z / (groundTilesZ * groundTileSize))
-
-
-    //Forward
-    if(Math.abs(cPos.z - groundMaxZ) <= threshold){
-
-        var segmentSize = (groundTilesZ * groundTileSize);
-
-        groundGridX.forEach(cell => {
-             createTiledGround(groundTilesX, groundTilesZ, groundTileSize, 
-                new BABYLON.Vector3(cell * segmentSize, groundY, -(groundMaxZ + (segmentSize)/2)));
-        });
-
-        groundMaxZ += segmentSize;
-        groundGridZ.push(currentCellZ - 1);     
-    }
-
-    //Right
-    if(Math.abs(cPos.x - groundMaxX) <= threshold){
-
-        var segmentSize = (groundTilesX * groundTileSize);
-
-        groundGridZ.forEach(cell => {        
-            createTiledGround(groundTilesX, groundTilesZ, groundTileSize, 
-                new BABYLON.Vector3(-(groundMaxX + (segmentSize)/2), groundY, cell * segmentSize));
-       });
-
-        groundMaxX += segmentSize;
-        groundGridX.push(currentCellX - 1);
-    }
-
-     //Left
-     if(Math.abs(cPos.x - groundMinX) <= threshold){
-
-        var segmentSize = (groundTilesX * groundTileSize);
-
-        groundGridZ.forEach(cell => {         
-            createTiledGround(groundTilesX, groundTilesZ, groundTileSize, 
-                new BABYLON.Vector3(-(groundMinX - (segmentSize)/2), groundY, cell * segmentSize));
-       });
-
-        groundMinX -= segmentSize;
-        groundGridX.push(currentCellX + 1);
-    }
-
-      //Back
-      if(Math.abs(cPos.z - groundMinZ) <= threshold){
-
-        var segmentSize = (groundTilesZ * groundTileSize);
-
-        groundGridX.forEach(cell => {
-             createTiledGround(groundTilesX, groundTilesZ, groundTileSize, 
-                new BABYLON.Vector3(cell * segmentSize, groundY, -(groundMinZ - (segmentSize)/2)));
-        });
-
-        groundMinZ -= segmentSize;
-        groundGridZ.push(currentCellZ + 1);     
-    }
 
 }
