@@ -21,23 +21,25 @@ var groundGridZ = [0];
 var airplane;
 var airplaneStartRotY = -Math.PI/2;
 
+
 /******* Add the create scene function ******/
 var createScene = function () {
 
     // Create the scene space
     var scene = new BABYLON.Scene(engine);
+    scene.ambientColor = new BABYLON.Color3(0.1,0.0,0.0);
+    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.0008;
+    scene.fogColor = new BABYLON.Color4(0.3,0.1,0.1, 0.5);
 
     // Add a camera to the scene and attach it to the canvas
-
     camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0,0,-10), scene);
     camera.setTarget(BABYLON.Vector3.Zero());
-    camera.maxZ = 10000;
-    //camera.attachControl(canvas, true);
+    camera.maxZ = 5000;
 
     // Add lights to the scene
     var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
     var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 1, -1), scene);
- 
 
     createAirplane(camera);
     initTiledGround(groundTilesX, groundTilesZ, groundTileSize);
@@ -83,9 +85,8 @@ var createScene = function () {
         };
 
         if ((map["d"] || map["D"])) {
-            camera.position.x += 0.2 * scene.getAnimationRatio();
             camera.rotation.z -= 0.01 * scene.getAnimationRatio();
-            camera.rotation.y += 0.001 * scene.getAnimationRatio();
+            camera.rotation.y += 0.005 * scene.getAnimationRatio();
 
             airplane.rotation.y += 0.001 * scene.getAnimationRatio();
             
@@ -94,9 +95,8 @@ var createScene = function () {
         };
 
         if ((map["a"] || map["A"])) {
-            camera.position.x -= 0.2 * scene.getAnimationRatio(); 
             camera.rotation.z += 0.01 * scene.getAnimationRatio();
-            camera.rotation.y -= 0.001 * scene.getAnimationRatio();
+            camera.rotation.y -= 0.005 * scene.getAnimationRatio();
 
             airplane.rotation.y = Math.max(airplane.rotation.y - 0.001 * scene.getAnimationRatio(),
                 airplaneStartRotY - 0.05);
@@ -169,7 +169,7 @@ window.addEventListener("resize", function () {
 
 function createSkyBox(scene){
 
-    var skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size:10000.0}, scene);
+    var skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size:4000.0}, scene);
     var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
     skyboxMaterial.backFaceCulling = false;
     skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("assets/textures/environment.dds", scene);
@@ -220,7 +220,7 @@ function createTiledGround(xTiles, zTiles, tileSize, pos){
             tile.position.y = pos.y;
 
             tile.material = groundMat;
-
+            tile.receiveShadows = true;
         }
     }
 
