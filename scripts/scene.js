@@ -6,22 +6,12 @@ var camera;
 
 var groundY = -5;
 
-var groundMaxZ = 0;
-var groundMinZ = 0;
-var groundMaxX = 0;
-var groundMinX = 0;
-
-var groundTilesX = 20;
-var groundTilesZ = 20;
-var groundTileSize = 50;
-
-var groundGridX = [0];
-var groundGridZ = [0];
-
 var airplane;
 var airplaneStartRotY = -Math.PI/2;
 
 var groundManager;
+
+var shadowGenerator;
 
 
 /******* Add the create scene function ******/
@@ -32,18 +22,23 @@ var createScene = function () {
     scene.ambientColor = new BABYLON.Color3(0.1,0.0,0.0);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
     scene.fogDensity = 0.0008;
-    scene.fogColor = new BABYLON.Color4(0.3,0.1,0.1, 0.5);
+    scene.fogColor = new BABYLON.Color3(0.3,0.1,0.1,);
 
     // Add a camera to the scene and attach it to the canvas
     camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0,0,-10), scene);
     camera.setTarget(BABYLON.Vector3.Zero());
     camera.maxZ = 5000;
+    camera.position.y = 50;
 
     // Add lights to the scene
     var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
-    var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 1, -1), scene);
+    var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(10000, 100, 2500), scene);
+    light1.intensity = 0.75;
+    light2.intensity = 2;
 
-    groundManager = new GroundManager(4,4,64,scene);
+    shadowGenerator = new BABYLON.ShadowGenerator(1024, light2);
+
+    groundManager = new GroundManager(2,2,160,scene);
 
     groundManager.initTiledGround();
 
@@ -64,47 +59,56 @@ var createScene = function () {
 
     //User input
     scene.registerAfterRender(function () {
+        var pitchSpeed = 0.004;
+        var yawSpeed = 0.01;
+        var rollSpeed = 0.02;
 
+        //Pitch up
         if ((map["w"] || map["W"])) {
-            camera.position.x += camera.upVector.x * scene.getAnimationRatio();
-            camera.position.y += camera.upVector.y * scene.getAnimationRatio();
-            camera.position.z += camera.upVector.z * scene.getAnimationRatio();
-
-            camera.rotation.x -= 0.001 * camera.upVector.y * scene.getAnimationRatio();
-            camera.rotation.y -= 0.001 * camera.upVector.z * scene.getAnimationRatio();
-            camera.rotation.z -= 0.001 * camera.upVector.x * scene.getAnimationRatio();
+            camera.rotation.x -= pitchSpeed * camera.upVector.y * scene.getAnimationRatio();
+            camera.rotation.y += pitchSpeed * camera.upVector.x * scene.getAnimationRatio();
+            camera.rotation.z -= pitchSpeed * camera.upVector.z * scene.getAnimationRatio();
 
             airplane.rotation.z = Math.min(airplane.rotation.z + 0.001 * scene.getAnimationRatio(), 0.05);
         };
 
+        //Pitch down
         if ((map["s"] || map["S"])) {
-            camera.position.x -= camera.upVector.x * scene.getAnimationRatio();
-            camera.position.y -= camera.upVector.y * scene.getAnimationRatio();
-            camera.position.z -= camera.upVector.z * scene.getAnimationRatio();
-
-            camera.rotation.x += 0.001 * camera.upVector.y * scene.getAnimationRatio();
-            camera.rotation.y += 0.001 * camera.upVector.z * scene.getAnimationRatio();
-            camera.rotation.z += 0.001 * camera.upVector.x * scene.getAnimationRatio();
+            camera.rotation.x += pitchSpeed * camera.upVector.y * scene.getAnimationRatio();
+            camera.rotation.y -= pitchSpeed * camera.upVector.x * scene.getAnimationRatio();
+            camera.rotation.z += pitchSpeed * camera.upVector.z * scene.getAnimationRatio();
 
             airplane.rotation.z = Math.max(airplane.rotation.z - 0.001 * scene.getAnimationRatio(), -0.05);
         };
 
+        //Yaw right
         if ((map["d"] || map["D"])) {
-            camera.rotation.z -= 0.01 * scene.getAnimationRatio();
-            camera.rotation.y += 0.005 * scene.getAnimationRatio();
-
-            airplane.rotation.y += 0.001 * scene.getAnimationRatio();
+            camera.rotation.x += yawSpeed * camera.upVector.x * scene.getAnimationRatio();
+            camera.rotation.y += yawSpeed * camera.upVector.y * scene.getAnimationRatio();
+            camera.rotation.z -= yawSpeed * camera.upVector.z * scene.getAnimationRatio();
             
             airplane.rotation.y = Math.min(airplane.rotation.y + 0.001 * scene.getAnimationRatio(),
                 airplaneStartRotY + 0.05);
         };
 
+        //Yaw left
         if ((map["a"] || map["A"])) {
-            camera.rotation.z += 0.01 * scene.getAnimationRatio();
-            camera.rotation.y -= 0.005 * scene.getAnimationRatio();
+            camera.rotation.x -= yawSpeed * camera.upVector.x * scene.getAnimationRatio();
+            camera.rotation.y -= yawSpeed * camera.upVector.y * scene.getAnimationRatio();
+            camera.rotation.z += yawSpeed * camera.upVector.z * scene.getAnimationRatio();
 
             airplane.rotation.y = Math.max(airplane.rotation.y - 0.001 * scene.getAnimationRatio(),
                 airplaneStartRotY - 0.05);
+        };
+
+        //Roll Right
+        if ((map["e"] || map["E"])) {
+            camera.rotation.z -= rollSpeed * scene.getAnimationRatio();
+        };
+
+        //Roll left
+        if ((map["q"] || map["Q"])) {
+            camera.rotation.z += rollSpeed * scene.getAnimationRatio();
         };
 
     });
@@ -120,22 +124,13 @@ engine.runRenderLoop(function () {
         scene.render();
 
         var forwardVector = BABYLON.Ray.CreateNewFromTo(camera.position, camera.getTarget()).direction.normalize();
-        var speed = 1;
+        var speed = 2;
 
         camera.position.x += forwardVector.x * speed * scene.getAnimationRatio();
         camera.position.y += forwardVector.y * speed * scene.getAnimationRatio();
         camera.position.z += forwardVector.z * speed * scene.getAnimationRatio();
 
         groundManager.expandGround(camera.position, 1000);
-
-  
-        //Auto straighten camera
-        if(camera.rotation.z > 0.01){
-            camera.rotation.z -= 0.005 * scene.getAnimationRatio();
-        }
-        else if(camera.rotation.z < -0.01){
-            camera.rotation.z += 0.005 * scene.getAnimationRatio();
-        }
 
         //Auto straighten plane
         if(airplane){
@@ -158,7 +153,7 @@ engine.runRenderLoop(function () {
               //Reset 
         if(camera.position.y <= groundY){
             camera.position.x = 10;
-            camera.position.y = 0;
+            camera.position.y = 50;
             camera.position.z = 0;
             camera.rotation.x = 0;
             camera.rotation.y = 0;
@@ -180,6 +175,7 @@ function createSkyBox(scene){
     skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
     skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
     skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    skyboxMaterial.disableLighting = true;
     skybox.material = skyboxMaterial;
 
     skybox.infiniteDistance = true;
@@ -200,11 +196,11 @@ function createAirplane(camera){
 
         apMesh.name = "Airplane";
         apMesh.rotation.y = airplaneStartRotY;
-        apMesh.scaling.x = 0.2;
-        apMesh.scaling.y = 0.2;
-        apMesh.scaling.z = 0.2;
+        apMesh.scaling.x = 0.02;
+        apMesh.scaling.y = 0.02;
+        apMesh.scaling.z = 0.02;
         
-        apMesh.position.z = 10;
+        apMesh.position.z = 2;
         apMesh.parent = camera;
 
 
@@ -216,8 +212,11 @@ function createAirplane(camera){
         //airplaneMat.wireframe = true;
 
         apMesh.material = airplaneMat;
+        shadowGenerator.addShadowCaster(apMesh);
 
         airplane = scene.getMeshByName("Airplane");
+
+       
     });
 
 
