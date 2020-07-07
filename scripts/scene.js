@@ -27,8 +27,10 @@ var createScene = function () {
     // Add a camera to the scene and attach it to the canvas
     camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0,0,-10), scene);
     camera.setTarget(BABYLON.Vector3.Zero());
-    camera.maxZ = 5000;
+    camera.maxZ = 4000;
     camera.position.y = 50;
+    camera.rotationQuaternion = new BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Zero(), 0);
+    camera.attachControl(canvas, true);
 
     // Add lights to the scene
     var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
@@ -38,12 +40,12 @@ var createScene = function () {
 
     shadowGenerator = new BABYLON.ShadowGenerator(1024, light2);
 
-    groundManager = new GroundManager(2,2,160,scene);
-
-    groundManager.initTiledGround();
-
     createAirplane(camera);
     createSkyBox(scene);
+
+    groundManager = new GroundManager(2,2,160,scene);
+    groundManager.initTiledGround();
+
     
     var map = {}; //object for multiple key presses
     scene.actionManager = new BABYLON.ActionManager(scene);
@@ -59,33 +61,42 @@ var createScene = function () {
 
     //User input
     scene.registerAfterRender(function () {
-        var pitchSpeed = 0.004;
+        var pitchSpeed = 0.01;
         var yawSpeed = 0.01;
         var rollSpeed = 0.02;
 
+        var forward = BABYLON.Ray.CreateNewFromTo(camera.position, camera.getTarget()).direction.normalize();
+        var up = camera.upVector;
+        var side = BABYLON.Vector3.Cross(camera.upVector, forward);
+
+
+        if ((map["r"] || map["R"])) {
+            console.log("[" + camera.upVector.x.toFixed(2) + ", " + camera.upVector.y.toFixed(2) + ", " + camera.upVector.z.toFixed(2) + "]");
+        };
+
         //Pitch up
         if ((map["w"] || map["W"])) {
-            camera.rotation.x -= pitchSpeed * camera.upVector.y * scene.getAnimationRatio();
-            camera.rotation.y += pitchSpeed * camera.upVector.x * scene.getAnimationRatio();
-            camera.rotation.z -= pitchSpeed * camera.upVector.z * scene.getAnimationRatio();
+            var quat = new BABYLON.Quaternion.RotationAxis(side, -pitchSpeed * scene.getAnimationRatio());
+            camera.rotationQuaternion = quat.multiply(camera.rotationQuaternion);
+            camera.rotationQuaternion.normalize();
 
             airplane.rotation.z = Math.min(airplane.rotation.z + 0.001 * scene.getAnimationRatio(), 0.05);
         };
 
         //Pitch down
         if ((map["s"] || map["S"])) {
-            camera.rotation.x += pitchSpeed * camera.upVector.y * scene.getAnimationRatio();
-            camera.rotation.y -= pitchSpeed * camera.upVector.x * scene.getAnimationRatio();
-            camera.rotation.z += pitchSpeed * camera.upVector.z * scene.getAnimationRatio();
+            var quat = new BABYLON.Quaternion.RotationAxis(side, pitchSpeed * scene.getAnimationRatio());
+            camera.rotationQuaternion = quat.multiply(camera.rotationQuaternion);
+            camera.rotationQuaternion.normalize();
 
             airplane.rotation.z = Math.max(airplane.rotation.z - 0.001 * scene.getAnimationRatio(), -0.05);
         };
 
         //Yaw right
         if ((map["d"] || map["D"])) {
-            camera.rotation.x += yawSpeed * camera.upVector.x * scene.getAnimationRatio();
-            camera.rotation.y += yawSpeed * camera.upVector.y * scene.getAnimationRatio();
-            camera.rotation.z -= yawSpeed * camera.upVector.z * scene.getAnimationRatio();
+            var quat = new BABYLON.Quaternion.RotationAxis(up, yawSpeed * scene.getAnimationRatio());
+            camera.rotationQuaternion = quat.multiply(camera.rotationQuaternion);
+            camera.rotationQuaternion.normalize();
             
             airplane.rotation.y = Math.min(airplane.rotation.y + 0.001 * scene.getAnimationRatio(),
                 airplaneStartRotY + 0.05);
@@ -93,9 +104,9 @@ var createScene = function () {
 
         //Yaw left
         if ((map["a"] || map["A"])) {
-            camera.rotation.x -= yawSpeed * camera.upVector.x * scene.getAnimationRatio();
-            camera.rotation.y -= yawSpeed * camera.upVector.y * scene.getAnimationRatio();
-            camera.rotation.z += yawSpeed * camera.upVector.z * scene.getAnimationRatio();
+            var quat = new BABYLON.Quaternion.RotationAxis(up, -yawSpeed * scene.getAnimationRatio());
+            camera.rotationQuaternion = quat.multiply(camera.rotationQuaternion);
+            camera.rotationQuaternion.normalize();
 
             airplane.rotation.y = Math.max(airplane.rotation.y - 0.001 * scene.getAnimationRatio(),
                 airplaneStartRotY - 0.05);
@@ -103,15 +114,23 @@ var createScene = function () {
 
         //Roll Right
         if ((map["e"] || map["E"])) {
-            camera.rotation.z -= rollSpeed * scene.getAnimationRatio();
+            var quat = new BABYLON.Quaternion.RotationAxis(forward, -rollSpeed * scene.getAnimationRatio());
+            camera.rotationQuaternion = quat.multiply(camera.rotationQuaternion);
+            camera.rotationQuaternion.normalize();
         };
 
         //Roll left
         if ((map["q"] || map["Q"])) {
-            camera.rotation.z += rollSpeed * scene.getAnimationRatio();
+            var quat = new BABYLON.Quaternion.RotationAxis(forward, rollSpeed * scene.getAnimationRatio());
+            camera.rotationQuaternion = quat.multiply(camera.rotationQuaternion);
+            camera.rotationQuaternion.normalize();
         };
 
+        
+
     });
+
+
 
     return scene;
 };
@@ -126,11 +145,12 @@ engine.runRenderLoop(function () {
         var forwardVector = BABYLON.Ray.CreateNewFromTo(camera.position, camera.getTarget()).direction.normalize();
         var speed = 2;
 
+        //Move forward
         camera.position.x += forwardVector.x * speed * scene.getAnimationRatio();
         camera.position.y += forwardVector.y * speed * scene.getAnimationRatio();
         camera.position.z += forwardVector.z * speed * scene.getAnimationRatio();
 
-        groundManager.expandGround(camera.position, 1000);
+        groundManager.expandGround(camera.position, 2000);
 
         //Auto straighten plane
         if(airplane){
@@ -150,14 +170,12 @@ engine.runRenderLoop(function () {
             }
         }   
 
-              //Reset 
+        //Reset 
         if(camera.position.y <= groundY){
             camera.position.x = 10;
             camera.position.y = 50;
             camera.position.z = 0;
-            camera.rotation.x = 0;
-            camera.rotation.y = 0;
-            camera.rotation.z = 0;
+            camera.rotationQuaternion = new BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Zero(), 0);
         }
 });
 
@@ -205,10 +223,11 @@ function createAirplane(camera){
 
 
         var airplaneMat = new BABYLON.StandardMaterial("AirplaneMaterial;", scene);
-        airplaneMat.diffuseColor = new BABYLON.Color3(0.9,0.8,0.1);
-        airplaneMat.specularColor = new BABYLON.Color3(0.5, 0.6, 0.87);
-        airplaneMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+        airplaneMat.diffuseColor = new BABYLON.Color3(0.9,0.9,0.9);
+        airplaneMat.specularColor = new BABYLON.Color3(0.2, 0.1, 0.1);
+        airplaneMat.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.05);
         airplaneMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
+        airplaneMat.diffuseTexture = new BABYLON.Texture("assets/textures/airplane.jpg", scene);
         //airplaneMat.wireframe = true;
 
         apMesh.material = airplaneMat;
@@ -216,8 +235,6 @@ function createAirplane(camera){
 
         airplane = scene.getMeshByName("Airplane");
 
-       
     });
-
 
 }

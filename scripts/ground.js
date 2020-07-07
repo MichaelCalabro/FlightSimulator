@@ -51,7 +51,9 @@ class GroundManager {
         this.areaProfiles.push(new AreaProfile(150, 4, 8, 4, 32, this.cityMat));
         this.areaProfiles.push(new AreaProfile(75, 4, 8, 4, 32, this.cityMat));
         this.areaProfiles.push(new AreaProfile(50, 4, 8, 2, 8, this.subUrbMat));
-        this.areaProfiles.push(new AreaProfile(20, 4, 8, 2, 8, this.subUrbMat));
+        this.areaProfiles.push(new AreaProfile(40, 4, 8, 2, 8, this.subUrbMat));
+        this.areaProfiles.push(new AreaProfile(30, 4, 8, 2, 8, this.subUrbMat));
+        this.areaProfiles.push(new AreaProfile(20, 4, 8, 2, 4, this.subUrbMat));
         this.areaProfiles.push(new AreaProfile(10, 4, 8, 2, 4, this.subUrbMat));
         this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
         this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
@@ -85,11 +87,11 @@ class GroundManager {
     }
     
     createTiledGround(pos){
-          
+         
         var anchorX = (this.xTiles * this.tileSize)/2 + pos.x;
         var anchorZ = (this.zTiles * this.tileSize)/2 + pos.z;
 
-        
+    
         var profile = this.areaProfiles[Math.floor(Math.random() * this.areaProfiles.length)];
     
         var groundMeshes = [];
@@ -104,12 +106,11 @@ class GroundManager {
                 tile.material = profile.getMaterial();
                 tile.receiveShadows = true;
                 groundMeshes.push(tile);
+                
             }
         }
     
         
-      
-    
         //Random buildings
         for(var i = 0; i < profile.getDensity(); i++){
     
@@ -119,20 +120,20 @@ class GroundManager {
     
             var building = BABYLON.MeshBuilder.CreateBox("box", {width: bWidth, height: bHeight, depth: bDepth}, scene);
     
-            building.position.x = this.buildingIntervals[Math.floor(Math.random() * this.buildingIntervals.length)] * (this.xTiles * this.tileSize)/2 - this.tileSize - pos.x;
-            building.position.z = this.buildingIntervals[Math.floor(Math.random() * this.buildingIntervals.length)] * (this.xTiles * this.tileSize)/2 - this.tileSize - pos.z;
+            building.position.x = this.buildingIntervals[Math.floor(Math.random() * this.buildingIntervals.length)] * (this.xTiles * this.tileSize)/2 - this.tileSize/2 - pos.x;
+            building.position.z = this.buildingIntervals[Math.floor(Math.random() * this.buildingIntervals.length)] * (this.zTiles * this.tileSize)/2 - this.tileSize/2 - pos.z;
             building.position.y = groundY + bHeight/2;
     
             building.material = this.buildingMat;
             groundMeshes.push(building);
-
         } 
 
         var fullGroundMesh = BABYLON.Mesh.MergeMeshes(groundMeshes, true, true, undefined, false, true);
-        fullGroundMesh.receiveShadows = true;
+        fullGroundMesh.receiveShadows = true;    
     }
 
     expandGround(cPos, threshold){
+        
     
         //Forward
         if(Math.abs(cPos.z - this.groundMaxZ) <= threshold){
