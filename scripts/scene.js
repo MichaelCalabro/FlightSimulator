@@ -18,11 +18,13 @@ var shadowGenerator;
 var createScene = function () {
 
     // Create the scene space
-    var scene = new BABYLON.Scene(engine);
+    var scene = new BABYLON.Scene(engine, { useGeometryUniqueIdsMap: true });
     scene.ambientColor = new BABYLON.Color3(0.1,0.0,0.0);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
     scene.fogDensity = 0.0008;
     scene.fogColor = new BABYLON.Color3(0.3,0.1,0.1,);
+    scene.autoClear = false;
+    scene.autoClearDepthAndStencil = false;
 
     // Add a camera to the scene and attach it to the canvas
     camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0,0,-10), scene);
@@ -143,7 +145,7 @@ engine.runRenderLoop(function () {
         scene.render();
 
         var forwardVector = BABYLON.Ray.CreateNewFromTo(camera.position, camera.getTarget()).direction.normalize();
-        var speed = 2;
+        var speed = 1.5;
 
         //Move forward
         camera.position.x += forwardVector.x * speed * scene.getAnimationRatio();

@@ -24,6 +24,7 @@ class GroundManager {
         this.cityMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
         this.cityMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
         this.cityMat.diffuseColor = new BABYLON.Color3(0.5,0.5,0.5);
+        this.cityMat.freeze();
 
         this.subUrbMat = new BABYLON.StandardMaterial("GroundMaterial", scene);
         this.subUrbMat.diffuseTexture = new BABYLON.Texture("assets/textures/suburb.jpg", scene);
@@ -31,6 +32,7 @@ class GroundManager {
         this.subUrbMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
         this.subUrbMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
         this.subUrbMat.diffuseColor = new BABYLON.Color3(0.3,0.3,0.3);
+        this.cityMat.freeze();
 
         this.farmlandMat = new BABYLON.StandardMaterial("GroundMaterial", scene);
         this.farmlandMat.diffuseTexture = new BABYLON.Texture("assets/textures/HITW-TS2-farm-mixed-2.jpg", scene);
@@ -38,12 +40,14 @@ class GroundManager {
         this.farmlandMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
         this.farmlandMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
         this.farmlandMat.diffuseColor = new BABYLON.Color3(0.3,0.3,0.3);
+        this.cityMat.freeze();
     
         this.buildingMat = new BABYLON.StandardMaterial("BuildingMaterial", scene);
         this.buildingMat.diffuseTexture = new BABYLON.Texture("assets/textures/building.jpg", scene);
         this.buildingMat.specularColor = new BABYLON.Color3(0.1, 0.025, 0.025);
         this.buildingMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
         this.buildingMat.ambientColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+        this.cityMat.freeze();
 
 
         //Area profiles
@@ -90,8 +94,7 @@ class GroundManager {
          
         var anchorX = (this.xTiles * this.tileSize)/2 + pos.x;
         var anchorZ = (this.zTiles * this.tileSize)/2 + pos.z;
-
-    
+   
         var profile = this.areaProfiles[Math.floor(Math.random() * this.areaProfiles.length)];
     
         var groundMeshes = [];
@@ -99,18 +102,22 @@ class GroundManager {
         for(var x = 0; x < this.xTiles; x++){
             for(var z = 0; z < this.zTiles; z++){
                 var tile = BABYLON.MeshBuilder.CreateGround("ground", {width: this.tileSize, height: this.tileSize, subdivisions: 4}, scene);
+
                 tile.position.x = (x * this.tileSize) - anchorX;
                 tile.position.z = (z * this.tileSize) - anchorZ;
                 tile.position.y = pos.y;
     
                 tile.material = profile.getMaterial();
                 tile.receiveShadows = true;
+                tile.freezeWorldMatrix();
+                tile.cullingStrategy = BABYLON.AbstractMesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY;
+
                 groundMeshes.push(tile);
                 
             }
         }
     
-        
+             
         //Random buildings
         for(var i = 0; i < profile.getDensity(); i++){
     
@@ -123,6 +130,10 @@ class GroundManager {
             building.position.x = this.buildingIntervals[Math.floor(Math.random() * this.buildingIntervals.length)] * (this.xTiles * this.tileSize)/2 - this.tileSize/2 - pos.x;
             building.position.z = this.buildingIntervals[Math.floor(Math.random() * this.buildingIntervals.length)] * (this.zTiles * this.tileSize)/2 - this.tileSize/2 - pos.z;
             building.position.y = groundY + bHeight/2;
+
+            building.freezeWorldMatrix();
+            building.convertToUnIndexedMesh();
+            building.cullingStrategy = BABYLON.AbstractMesh.CULLINGSTRATEGY_BOUNDINGSPHERE_ONLY;
     
             building.material = this.buildingMat;
             groundMeshes.push(building);
@@ -130,6 +141,7 @@ class GroundManager {
 
         var fullGroundMesh = BABYLON.Mesh.MergeMeshes(groundMeshes, true, true, undefined, false, true);
         fullGroundMesh.receiveShadows = true;    
+        fullGroundMesh.freezeWorldMatrix();
     }
 
     expandGround(cPos, threshold){
