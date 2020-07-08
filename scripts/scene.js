@@ -10,7 +10,6 @@ var airplane;
 var airplaneStartRotY = -Math.PI/2;
 
 var groundManager;
-
 var shadowGenerator;
 
 
@@ -21,8 +20,8 @@ var createScene = function () {
     var scene = new BABYLON.Scene(engine, { useGeometryUniqueIdsMap: true });
     scene.ambientColor = new BABYLON.Color3(0.1,0.0,0.0);
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.0008;
-    scene.fogColor = new BABYLON.Color3(0.3,0.1,0.1,);
+    scene.fogDensity = 0.0007;
+    scene.fogColor = new BABYLON.Color3(0.4,0.2,0.05);
     scene.autoClear = false;
     scene.autoClearDepthAndStencil = false;
 
@@ -36,11 +35,11 @@ var createScene = function () {
 
     // Add lights to the scene
     var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
-    var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(10000, 100, 2500), scene);
-    light1.intensity = 0.75;
-    light2.intensity = 2;
+    var sunLight = new BABYLON.PointLight("light2", new BABYLON.Vector3(10000, 100, 2500), scene);
+    light1.intensity = 0.5;
+    sunLight.intensity = 4;
 
-    shadowGenerator = new BABYLON.ShadowGenerator(1024, light2);
+    shadowGenerator = new BABYLON.ShadowGenerator(1024, sunLight);
 
     createAirplane(camera);
     createSkyBox(scene);
@@ -128,7 +127,8 @@ var createScene = function () {
             camera.rotationQuaternion.normalize();
         };
 
-        
+        //Keep sun in same relative position
+        sunLight.position.z = camera.position.z + 2500;
 
     });
 
@@ -226,7 +226,7 @@ function createAirplane(camera){
 
         var airplaneMat = new BABYLON.StandardMaterial("AirplaneMaterial;", scene);
         airplaneMat.diffuseColor = new BABYLON.Color3(0.9,0.9,0.9);
-        airplaneMat.specularColor = new BABYLON.Color3(0.2, 0.1, 0.1);
+        airplaneMat.specularColor = new BABYLON.Color3(0.4,0.2,0.05);
         airplaneMat.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.05);
         airplaneMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
         airplaneMat.diffuseTexture = new BABYLON.Texture("assets/textures/airplane.jpg", scene);

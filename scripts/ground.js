@@ -44,8 +44,8 @@ class GroundManager {
     
         this.buildingMat = new BABYLON.StandardMaterial("BuildingMaterial", scene);
         this.buildingMat.diffuseTexture = new BABYLON.Texture("assets/textures/building.jpg", scene);
-        this.buildingMat.specularColor = new BABYLON.Color3(0.1, 0.025, 0.025);
-        this.buildingMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+        this.buildingMat.specularColor = new BABYLON.Color3(0.2,0.1,0.025);
+        this.buildingMat.emissiveColor = new BABYLON.Color3(0.5, 0.4, 0.1);
         this.buildingMat.ambientColor = new BABYLON.Color3(0.0, 0.0, 0.0);
         this.cityMat.freeze();
 
@@ -65,6 +65,12 @@ class GroundManager {
         this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
         this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
         this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
+        this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
+        this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
+        this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
+        this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
+        this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
+        this.areaProfiles.push(new AreaProfile(0, 2, 4, 2, 2, this.farmlandMat));
 
   
         //Building spacing
@@ -77,6 +83,9 @@ class GroundManager {
 
             i += 0.15;
         }
+
+        //Building face UV
+        this.uvFactor = 8;
 
     }
 
@@ -124,8 +133,16 @@ class GroundManager {
             var bWidth = profile.getMinWidth() + Math.random() * profile.getMaxWidth();
             var bHeight = profile.getMinHeight() + Math.random() * profile.getMaxHeight();
             var bDepth = profile.getMinWidth() + Math.random() * profile.getMaxWidth();
+
+            var bFaceUV = new Array(6);
+            bFaceUV[0] = new BABYLON.Vector4(bWidth / this.uvFactor,0,0,bHeight / this.uvFactor);
+            bFaceUV[1] = new BABYLON.Vector4(bWidth / this.uvFactor,0,0,bHeight / this.uvFactor);
+            bFaceUV[2] = new BABYLON.Vector4(bHeight / this.uvFactor,0,0, bDepth / this.uvFactor);
+            bFaceUV[3] =  new BABYLON.Vector4(bHeight / this.uvFactor,0,0, bDepth / this.uvFactor);
+            bFaceUV[4] = new BABYLON.Vector4(0.01,0,0,0.01);
+            bFaceUV[5] = new BABYLON.Vector4(1,0,0,1);
     
-            var building = BABYLON.MeshBuilder.CreateBox("box", {width: bWidth, height: bHeight, depth: bDepth}, scene);
+            var building = BABYLON.MeshBuilder.CreateBox("box", {width: bWidth, height: bHeight, depth: bDepth, faceUV: bFaceUV}, scene);
     
             building.position.x = this.buildingIntervals[Math.floor(Math.random() * this.buildingIntervals.length)] * (this.xTiles * this.tileSize)/2 - this.tileSize/2 - pos.x;
             building.position.z = this.buildingIntervals[Math.floor(Math.random() * this.buildingIntervals.length)] * (this.zTiles * this.tileSize)/2 - this.tileSize/2 - pos.z;
