@@ -63,9 +63,9 @@ var createScene = function () {
 
     //User input
     scene.registerAfterRender(function () {
-        var pitchSpeed = 0.01;
-        var yawSpeed = 0.01;
-        var rollSpeed = 0.02;
+        var pitchSpeed = 0.0075;
+        var yawSpeed = 0.0075;
+        var rollSpeed = 0.0125;
 
         var forward = BABYLON.Ray.CreateNewFromTo(camera.position, camera.getTarget()).direction.normalize();
         var up = camera.upVector;
