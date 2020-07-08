@@ -43,6 +43,7 @@ var createScene = function () {
 
     createAirplane(camera);
     createSkyBox(scene);
+    createUI();
 
     groundManager = new GroundManager(2,2,160,scene);
     groundManager.initTiledGround();
@@ -152,6 +153,7 @@ engine.runRenderLoop(function () {
         camera.position.y += forwardVector.y * speed * scene.getAnimationRatio();
         camera.position.z += forwardVector.z * speed * scene.getAnimationRatio();
 
+        //Infinite ground
         groundManager.expandGround(camera.position, 2000);
 
         //Auto straighten plane
@@ -204,13 +206,9 @@ function createSkyBox(scene){
 function createAirplane(camera){
 
     BABYLON.OBJFileLoader.OPTIMIZE_WITH_UV = true;
-    //BABYLON.OBJFileLoader.COMPUTE_NORMALS = true;
-    //BABYLON.OBJFileLoader.UV_SCALE = new BABYLON.Vector2(1, 0.5);
+    BABYLON.OBJFileLoader.COMPUTE_NORMALS = true;
     BABYLON.OBJFileLoader.SKIP_MATERIALS = true;
 
-
-
-    // Add and manipulate meshes in the scene
     BABYLON.SceneLoader.ImportMesh("","assets/objects/", "Airplane.obj", scene, function(newMeshes){
         var apMesh = BABYLON.Mesh.MergeMeshes(newMeshes);
 
@@ -223,14 +221,12 @@ function createAirplane(camera){
         apMesh.position.z = 2;
         apMesh.parent = camera;
 
-
         var airplaneMat = new BABYLON.StandardMaterial("AirplaneMaterial;", scene);
         airplaneMat.diffuseColor = new BABYLON.Color3(0.9,0.9,0.9);
         airplaneMat.specularColor = new BABYLON.Color3(0.4,0.2,0.05);
         airplaneMat.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.05);
         airplaneMat.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
         airplaneMat.diffuseTexture = new BABYLON.Texture("assets/textures/airplane.jpg", scene);
-        //airplaneMat.wireframe = true;
 
         apMesh.material = airplaneMat;
         shadowGenerator.addShadowCaster(apMesh);
@@ -239,4 +235,83 @@ function createAirplane(camera){
 
     });
 
+}
+
+function createUI(){
+
+    var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+    var uiColor = "white";
+    var uiFontSize = 18;
+    var uiPadding = "95%";
+    var uiAlpha = 0.4;
+
+    var wText = new BABYLON.GUI.TextBlock();
+    wText.text = "W";
+    wText.color = uiColor;
+    wText.fontSize = uiFontSize;
+    wText.paddingBottom = uiPadding;
+    wText.alpha = uiAlpha;
+
+    var sText = new BABYLON.GUI.TextBlock();
+    sText.text = "S";
+    sText.color = uiColor;
+    sText.fontSize = uiFontSize;
+    sText.paddingTop = uiPadding;
+    sText.alpha = uiAlpha;
+
+    var aText = new BABYLON.GUI.TextBlock();
+    aText.text = "A";
+    aText.color = uiColor;
+    aText.fontSize = uiFontSize;
+    aText.paddingRight = uiPadding;
+    aText.alpha = uiAlpha;
+
+    var dText = new BABYLON.GUI.TextBlock();
+    dText.text = "D";
+    dText.color = uiColor;
+    dText.fontSize = uiFontSize;
+    dText.paddingLeft = uiPadding;
+    dText.alpha = uiAlpha;
+
+    var q1Text = new BABYLON.GUI.TextBlock();
+    q1Text.text = "Q";
+    q1Text.color = uiColor;
+    q1Text.fontSize = uiFontSize;
+    q1Text.paddingBottom = uiPadding;
+    q1Text.paddingRight = uiPadding;
+    q1Text.alpha = uiAlpha;
+
+    var q2Text = new BABYLON.GUI.TextBlock();
+    q2Text.text = "Q";
+    q2Text.color = uiColor;
+    q2Text.fontSize = uiFontSize;
+    q2Text.paddingTop = uiPadding;
+    q2Text.paddingRight = uiPadding;
+    q2Text.alpha = uiAlpha;
+
+    var e1Text = new BABYLON.GUI.TextBlock();
+    e1Text.text = "E";
+    e1Text.color = uiColor;
+    e1Text.fontSize = uiFontSize;
+    e1Text.paddingBottom = uiPadding;
+    e1Text.paddingLeft = uiPadding;
+    e1Text.alpha = uiAlpha;
+
+    var e2Text = new BABYLON.GUI.TextBlock();
+    e2Text.text = "E";
+    e2Text.color = uiColor;
+    e2Text.fontSize = uiFontSize;
+    e2Text.paddingTop = uiPadding;
+    e2Text.paddingLeft = uiPadding;
+    e2Text.alpha = uiAlpha;
+    
+    advancedTexture.addControl(wText);
+    advancedTexture.addControl(sText);
+    advancedTexture.addControl(aText);
+    advancedTexture.addControl(dText);
+    advancedTexture.addControl(q1Text);
+    advancedTexture.addControl(e1Text);
+    advancedTexture.addControl(q2Text);
+    advancedTexture.addControl(e2Text);
 }
